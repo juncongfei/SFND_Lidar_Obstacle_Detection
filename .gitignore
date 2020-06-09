@@ -32,4 +32,6 @@
 *.app
 /build
 /src/sensors/data
+.vscode/
+build/
 
