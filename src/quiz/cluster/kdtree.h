@@ -60,8 +60,8 @@ struct KdTree
 			float delta_y = node->point[1]-target[1];
 			if(-distanceTol<=delta_x && delta_x<=distanceTol && -distanceTol<=delta_y && delta_y<=distanceTol)
 			{
-				float distance = sqrt(pow((target[0]-node->point[0]),2)+pow((target[1]-node->point[1]),2));
-				if (distance <= distanceTol)
+				float dist = sqrt(pow((target[0]-node->point[0]),2)+pow((target[1]-node->point[1]),2));
+				if (dist <= distanceTol)
 					ids.push_back(node->id);
 			}
 
