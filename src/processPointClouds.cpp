@@ -1,5 +1,5 @@
 // PCL lib Functions for processing point clouds 
-
+#include <unordered_set>
 #include "processPointClouds.h"
 
 
@@ -86,11 +86,82 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
 
 
 template<typename PointT>
+pcl::PointIndices::Ptr ProcessPointClouds<PointT>::RansacPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceTol)
+{
+	std::unordered_set<int> inliersResult;
+	srand(time(NULL));
+	
+	// TODO: Fill in this function
+
+	// For max iterations 
+	while (maxIterations--)
+	{
+		// Randomly sample subset and fit plane
+		std::unordered_set<int> inliers;
+		while (inliers.size() < 3)
+		{
+			inliers.insert(rand()%(cloud->points.size()));
+		}
+		float x1, y1, z1, x2, y2, z2, x3, y3, z3;
+
+		auto itr = inliers.begin();
+		x1 = cloud->points[*itr].x;
+		y1 = cloud->points[*itr].y;
+		z1 = cloud->points[*itr].z;
+		itr++;
+		x2 = cloud->points[*itr].x;
+		y2 = cloud->points[*itr].y;
+		z2 = cloud->points[*itr].z;
+		itr++;
+		x3 = cloud->points[*itr].x;
+		y3 = cloud->points[*itr].y;
+		z3 = cloud->points[*itr].z;
+
+		float a = (y2-y1)*(z3-z1)-(z2-z1)*(y3-y1);
+		float b = (z2-z1)*(x3-x1)-(x2-x1)*(z3-z1);
+		float c = (x2-x1)*(y3-y1)-(y2-y1)*(x3-x1);
+		float d = -(a*x1+b*y1+c*z1);
+
+		// Measure distance between every point and fitted line
+		for (int idx=0; idx< cloud->points.size(); idx++)
+		{
+			if (inliers.count(idx)>0)
+				continue;
+
+			PointT point = cloud->points[idx];
+			float x4 = point.x;
+			float y4 = point.y;
+			float z4 = point.z;
+
+			float dist = fabs(a*x4+b*y4+c*z4+d)/sqrt(a*a+b*b+c*c);
+			// If distance is smaller than threshold count it as inlier
+			if (dist<=distanceTol)
+			{
+				inliers.insert(idx);
+			}
+		}
+		// Return indicies of inliers from fitted line with most inliers
+		if (inliers.size()>inliersResult.size())
+		{
+			inliersResult = inliers;
+		}
+	}
+
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+    for (const auto elem : inliersResult)
+    {
+        inliers->indices.push_back(elem);
+    }
+	return inliers;
+}
+
+
+template<typename PointT>
 std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT>::Ptr> ProcessPointClouds<PointT>::SegmentPlane(typename pcl::PointCloud<PointT>::Ptr cloud, int maxIterations, float distanceThreshold)
 {
     // Time segmentation process
     auto startTime = std::chrono::steady_clock::now();
-
+    /*
     // TODO:: Fill in this function to find inliers for the cloud.
     pcl::SACSegmentation<PointT> seg;
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
@@ -105,6 +176,13 @@ std::pair<typename pcl::PointCloud<PointT>::Ptr, typename pcl::PointCloud<PointT
     // Segment the plane
     seg.setInputCloud(cloud);
     seg.segment (*inliers, *coefficients);
+    */
+
+   // use ransac implemented by myself
+   pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
+   inliers = RansacPlane(cloud, maxIterations, distanceThreshold);
+
+   
 
     if (inliers->indices.size() == 0)
     {
